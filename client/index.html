@@ -11,8 +11,8 @@
 
 <div id="gameDiv" style="position:absolute;display:none;">
     <div id="game" style="position:absolute;width:1800px;height:960px;">
-        <canvas id="ctx"></canvas>
-        
+        <canvas id="ctx" width="1800" height="960" style="position:absolute;width:1800px;height:960px;"></canvas>
+                
         <div id="ui" style="position:absolute;width:1800px;height:960px;">
             <div id="inventory"></div>
             <div id="crafting"></div>
@@ -412,17 +412,22 @@
         //let selectedTileX = (mousexInChunk * 50) + (mouseChunkX * 32 * 50) - Player.list[selfId].x + WIDTH/2
         //let selectedTileY = (mouseyInChunk * 50) + (mouseChunkY * 32 * 50) - Player.list[selfId].y + HEIGHT/2 - 40
 
+
         let selectedTileX = Math.floor((mouseX + Player.list[selfId].x) / 50) * 50 - Player.list[selfId].x;
         let selectedTileY = Math.floor((mouseY + Player.list[selfId].y) / 50) * 50 - Player.list[selfId].y;
 
         //console.log(mouseChunkX + ", " + mousexInChunk)
         console.log(selectedTileX + ", " + selectedTileY)
 
+        ctx.fillStyle = "rgba(255, 0, 0, 255)";
+        ctx.fillRect(mouseX, mouseY, 10, 10);
+
         // Draw Hover Tile
         ctx.fillStyle = "rgba(145, 47, 47, " + (Player.list[selfId].tileDestroyState/100) + ")"
+
         
         ctx.fillRect(selectedTileX, selectedTileY, 50, 90)
-        ctx.drawImage(Img.hover_tile, selectedTileX, selectedTileY - 40, 50, 90)
+        ctx.drawImage(Img.hover_tile, selectedTileX, selectedTileY, 50, 90)
     },1000/75)
 
     var drawMap = function(){
@@ -605,7 +610,7 @@
         socket.emit('keyPress',{inputId:'hold_right', state:false})
         switch (event.which) {
             case 1:
-                socket.emit('keyPress',{inputId:'left_click', state:true})
+                socket.emit('keyPress',{inputId:'left_click', state:true, mouseX: mouseX, mouseY: mouseY})
                 /*
                 setTimeout(function(){
                     socket.emit('keyPress',{inputId:'left_click', state:false})
@@ -616,7 +621,7 @@
                 //console.log("mid")
                 break;
             case 3:
-                socket.emit('keyPress',{inputId:'right_click', state:true})
+                socket.emit('keyPress',{inputId:'right_click', state:true, mouseX: mouseX, mouseY: mouseY})
                 /*
                 setTimeout(function(){
                     socket.emit('keyPress',{inputId:'right_click', state:false})
@@ -629,16 +634,21 @@
     }
 
     document.onmousemove = function(event){
-        var x = -(WIDTH/2) + event.clientX - 8
-        var y = -(HEIGHT/2) + event.clientY - 8
-        mouseX = event.clientX;
-        mouseY = event.clientY;
+        let rect = ctx.canvas.getBoundingClientRect();
+       
+        mouseX = event.clientX - rect.left;
+        mouseY = event.clientY - rect.top;
+
+        
+        var x = -(WIDTH/2) + event.clientX - rect.left;
+        var y = -(HEIGHT/2) + event.clientY - rect.top;
+
         var angle = Math.atan2(y, x) / Math.PI * 180
-        //console.log(event.clientX, event.clientY)
-        var rect = document.getElementById("ctx")
-        socket.emit('keyPress',{inputId:'mouseAngle', state:angle})
-        socket.emit('keyPress',{inputId:'clientX', state:(event.clientX - rect.offsetLeft)})
-        socket.emit('keyPress',{inputId:'clientY', state:(event.clientY - rect.offsetTop)})
+        console.log(event.clientX, rect.left)
+        
+        socket.emit('keyPress',{inputId: 'mouseAngle', state: angle})
+        socket.emit('keyPress',{inputId: 'clientX', state: mouseX})
+        socket.emit('keyPress',{inputId: 'clientY', state: mouseY})
     }
 
     document.oncontextmenu = function(event){

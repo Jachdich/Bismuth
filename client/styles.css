@@ -25,7 +25,6 @@ div{
 }
 body {
     background-color: #303030;
-    margin: 0;
 }
 #inventory{
     position:absolute;
@@ -55,9 +54,9 @@ body {
     top: 330px;
     text-align: right;
 }
-
+/*
 canvas {
-     display: block;  /* prevents scrollbar */
+     display: block;
      width: 100vw;
      height: 100vh;
 }
@@ -66,6 +65,17 @@ canvas {
    width: 100vw;
    height: 100vh;
    display: block;
+}*/
+
+#gameDiv {
+    width: 1800px;
+    height: 960px;
+    position: absolute;
+    margin: auto;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
 }
 
 #signDiv {
