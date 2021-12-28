@@ -168,13 +168,6 @@ Player = function(id, username, socket, progress){
             return currentMouseChunk.tiles[yic * currentMouseChunk.width + xic]
         }
 
-        socket.emit("hover-tile",{
-            chunkX: mouseChunkX,
-            chunkY: mouseChunkY,
-            tileX: mouseXInChunk,
-            tileY: mouseYInChunk,
-        })
-
         if(self.currentRightClick > self.lastRightClick){
             /*
             if(colTiles.includes(getTile(mouseXInChunk, mouseYInChunk))){

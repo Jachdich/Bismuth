@@ -11,7 +11,7 @@
 
 <div id="gameDiv" style="position:absolute;display:none;">
     <div id="game" style="position:absolute;width:1800px;height:960px;">
-        <canvas id="ctx" width="1800" height="960" style="position:absolute;width:1800px;height:960px;"></canvas>
+        <canvas id="ctx"></canvas>
         
         <div id="ui" style="position:absolute;width:1800px;height:960px;">
             <div id="inventory"></div>
@@ -37,6 +37,9 @@
     var WIDTH = 1800
     var HEIGHT = 960
     var socket = io()
+
+    var mouseX = 0;
+    var mouseY = 0;
 
     World = function () {
     var self = {
@@ -169,8 +172,8 @@
             var width = 100
             var height = 100
 
-            var x = self.x - Player.list[selfId].x + WIDTH/2
-            var y = self.y - Player.list[selfId].y + HEIGHT/2
+            var x = self.x - Player.list[selfId].x + ctx.clientWidth/2
+            var y = self.y - Player.list[selfId].y + ctx.clientHeight/2
 
             if(!self.lookingRight){
                 ctx.drawImage(Img.player_left, 0, 0, Img.player_left.width, Img.player_left.height, x-width/2, y-height/2, width, height)
@@ -343,19 +346,6 @@
         Player.list[selfId].world.map[Chunkidx].tiles[tileY * mouseChunk.width + tileX] = tileToPlace
     })
 
-    let selectedTileX = 0
-    let selectedTileY = 0
-
-    socket.on("hover-tile", function(data){
-        let chunkX = data.chunkX
-        let chunkY = data.chunkY
-        let tileX = data.tileX
-        let tileY = data.tileY
-        selectedTileX = (tileX * 50) + (chunkX * 32 * 50)
-        selectedTileY = (tileY * 50) + (chunkY * 32 * 50)
-        //console.log(selectedTileX, selectedTileY)
-    })
-    
     // remove
     socket.on("remove",function(data){
         for(var i = 0; i < data.player.length; i++){
@@ -371,6 +361,9 @@
 
     // Game Rendering Loop
     setInterval(function(){
+
+        ctx.canvas.width  = ctx.canvas.clientWidth;
+        ctx.canvas.height = ctx.canvas.clientHeight;
         // bg Colour
         ctx.clearRect(0, 0, WIDTH, HEIGHT)
         ctx.fillStyle = "#324536"
@@ -411,10 +404,25 @@
         //ctx.drawImage(Img.overlay, 0, 0, 1800, 810)
         drawScore()
 
+        //let mouseChunkX = Math.floor((mouseX / 50) / 32);
+        //let mouseChunkY = Math.floor((mouseY / 50) / 32);
+        //let mousexInChunk = Math.floor(mouseX / 50 - mouseChunkX * 32);
+        //let mouseyInChunk = Math.floor(mouseY / 50 - mouseChunkY * 32);
+        //
+        //let selectedTileX = (mousexInChunk * 50) + (mouseChunkX * 32 * 50) - Player.list[selfId].x + WIDTH/2
+        //let selectedTileY = (mouseyInChunk * 50) + (mouseChunkY * 32 * 50) - Player.list[selfId].y + HEIGHT/2 - 40
+
+        let selectedTileX = Math.floor((mouseX + Player.list[selfId].x) / 50) * 50 - Player.list[selfId].x;
+        let selectedTileY = Math.floor((mouseY + Player.list[selfId].y) / 50) * 50 - Player.list[selfId].y;
+
+        //console.log(mouseChunkX + ", " + mousexInChunk)
+        console.log(selectedTileX + ", " + selectedTileY)
+
         // Draw Hover Tile
         ctx.fillStyle = "rgba(145, 47, 47, " + (Player.list[selfId].tileDestroyState/100) + ")"
-        ctx.fillRect(selectedTileX - Player.list[selfId].x + WIDTH/2, selectedTileY - Player.list[selfId].y + HEIGHT/2 - 40, 50, 90)
-        ctx.drawImage(Img.hover_tile ,selectedTileX - Player.list[selfId].x + WIDTH/2, selectedTileY - Player.list[selfId].y + HEIGHT/2 - 40, 50, 90)
+        
+        ctx.fillRect(selectedTileX, selectedTileY, 50, 90)
+        ctx.drawImage(Img.hover_tile, selectedTileX, selectedTileY - 40, 50, 90)
     },1000/75)
 
     var drawMap = function(){
@@ -621,8 +629,10 @@
     }
 
     document.onmousemove = function(event){
-        var x = -900 + event.clientX - 8
-        var y = -480 + event.clientY - 8
+        var x = -(WIDTH/2) + event.clientX - 8
+        var y = -(HEIGHT/2) + event.clientY - 8
+        mouseX = event.clientX;
+        mouseY = event.clientY;
         var angle = Math.atan2(y, x) / Math.PI * 180
         //console.log(event.clientX, event.clientY)
         var rect = document.getElementById("ctx")
