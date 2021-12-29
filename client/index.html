@@ -409,8 +409,8 @@
         //ctx.drawImage(Img.overlay, 0, 0, 1800, 810)
         drawScore()
 
-        let selectedTileX = Math.floor((mouseX + Player.list[selfId].x) / 50) * 50 - Player.list[selfId].x;
-        let selectedTileY = Math.floor((mouseY + Player.list[selfId].y) / 50) * 50 - Player.list[selfId].y - 10;
+        let selectedTileX = mouseTileX * 50 + mouseChunkX * 50 * 32 - Player.list[selfId].x + ctx.canvas.width/2;
+        let selectedTileY = mouseTileY * 50 + mouseChunkY * 50 * 32 - Player.list[selfId].y + ctx.canvas.height/2 + 10;
 
         // Draw Hover Tile
         ctx.fillStyle = "rgba(145, 47, 47, " + (Player.list[selfId].tileDestroyState/100) + ")"
@@ -440,8 +440,8 @@
                     else if (col === 3)
                         ctx.fillStyle = "#787878"
 
-                    let tilex = (chunk.x * 50 * chunk.width) + (j * 50) - Player.list[selfId].x + WIDTH/2
-                    let tiley = (chunk.y * 50 * chunk.height) + (i * 50) - Player.list[selfId].y + HEIGHT/2
+                    let tilex = (chunk.x * 50 * chunk.width) + (j * 50) - Player.list[selfId].x + ctx.canvas.width/2
+                    let tiley = (chunk.y * 50 * chunk.height) + (i * 50) - Player.list[selfId].y + ctx.canvas.height/2
                     ctx.fillRect(tilex, tiley, 50, 50)
                 
                     // other tiles
@@ -632,15 +632,14 @@
         mouseX = event.clientX - rect.left;
         mouseY = event.clientY - rect.top;
 
-        mouseChunkX = Math.floor((mouseX + Player.list[selfId].x) / 50 / 32);
-        mouseChunkY = Math.floor((mouseY + Player.list[selfId].y) / 50 / 32);
-        
-        mouseTileX = Math.floor((mouseX + Player.list[selfId].x) / 50) - 32 * mouseChunkX;
-        mouseTileY = Math.floor((mouseY + Player.list[selfId].y) / 50) - 32 * mouseChunkY;
+        var x = -(ctx.canvas.width/2) + event.clientX - rect.left;
+        var y = -(ctx.canvas.height/2) + event.clientY - rect.top;
 
+        mouseChunkX = Math.floor((x + Player.list[selfId].x) / 50 / 32);
+        mouseChunkY = Math.floor((y - 10 + Player.list[selfId].y) / 50 / 32);
         
-        var x = -(WIDTH/2) + event.clientX - rect.left;
-        var y = -(HEIGHT/2) + event.clientY - rect.top;
+        mouseTileX = Math.floor((x + Player.list[selfId].x) / 50) - 32 * mouseChunkX;
+        mouseTileY = Math.floor((y - 10 + Player.list[selfId].y) / 50) - 32 * mouseChunkY;
 
         mouseAngle = Math.atan2(y, x) / Math.PI * 180
         //console.log(event.clientX, rect.left)
