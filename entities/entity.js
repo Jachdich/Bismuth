@@ -104,12 +104,14 @@ Player = function(id, username, socket, progress){
     self.pressingLeft = false
     self.pressingUp = false
     self.pressingDown = false
-    self.holdingMouseLeft = false
-    self.holdingMouseRight = false
-    self.mouseX = 0
-    self.mouseY = 0
-    self.mouseCanvasX = 0
-    self.mouseCanvasY = 0
+    self.leftHold = false
+    self.rightHold = false
+    self.leftEdge = false
+    self.rightEdge = false
+    self.mouseChunkX = 0;
+    self.mouseChunkY = 0;
+    self.mouseTileX = 0;
+    self.mouseTileY = 0;
     self.mouseAngle = 0
     self.maxSpeed = 10
     self.hp = 100
@@ -120,10 +122,6 @@ Player = function(id, username, socket, progress){
     self.loadedChunks = []
     self.lookingRight = false
     self.spriteId = undefined
-    self.currentRightClick = 0
-    self.lastRightClick = 0
-    self.currentLeftClick = 0
-    self.lastLeftClick = 0
     self.tileDestroyState = 0
 
     self.inventory.addItem("survival_knife", 1)
@@ -143,18 +141,10 @@ Player = function(id, username, socket, progress){
             if(!self.inventory.hasItem(self.hotbar[i], 1) && self.hotbar[i] !== "Nothing")
                 self.hotbar[i] = "Nothing"
 
-        self.mouseCanvasX = self.mouseX + self.x - 900 // 900 = 1800/2
-        self.mouseCanvasY = self.mouseY + self.y - 480 // 480 = 960/2
-
         let currentChunk = world.getChunk(Math.floor((self.x / 50) / 32), Math.floor((self.y / 50) / 32))
         
-        let currentMouseChunk = world.getChunk(Math.floor((self.mouseCanvasX / 50) / 32), Math.floor((self.mouseCanvasY / 50) / 32))
-        let mouseXInChunk = Math.floor(self.mouseCanvasX / 50 - currentMouseChunk.x * 32)
-        let mouseYInChunk = Math.floor(self.mouseCanvasY / 50 - currentMouseChunk.y * 32)
-
-        let mouseChunkX = Math.floor((self.mouseCanvasX / 50) / 32)
-        let mouseChunkY = Math.floor((self.mouseCanvasY / 50) / 32)
-        let mouseChunkidx = (mouseChunkX << 16) | mouseChunkY
+        let currentMouseChunk = world.getChunk(self.mouseChunkX, self.mouseChunkY)
+        let mouseChunkidx = (self.mouseChunkX << 16) | self.mouseChunkY
 
         let tileToPlace = 0
 
@@ -164,11 +154,12 @@ Player = function(id, username, socket, progress){
             self.spriteId = 0
         //console.log(self.inventory.hasItem(self.hotbar[self.activeSlot], 1))
 
-        getTile = function(xic, yic){
+        function getTile(xic, yic){
             return currentMouseChunk.tiles[yic * currentMouseChunk.width + xic]
         }
 
-        if(self.currentRightClick > self.lastRightClick){
+        if(self.rightEdge){
+            self.rightEdge = false;
             /*
             if(colTiles.includes(getTile(mouseXInChunk, mouseYInChunk))){
                 currentMouseChunk.tiles[mouseYInChunk * currentMouseChunk.width + mouseXInChunk] = 1
@@ -178,9 +169,9 @@ Player = function(id, username, socket, progress){
                 currentMouseChunk.tiles[mouseYInChunk * currentMouseChunk.width + mouseXInChunk] = 3
                 tileToPlace = 3
             }           
-            */  
+            */ 
 
-            if(intTiles.includes(getTile(mouseXInChunk, mouseYInChunk))){
+            if(intTiles.includes(getTile(self.mouseTileX, self.mouseTileY))){
                 //currentMouseChunk.tiles[mouseYInChunk * currentMouseChunk.width + mouseXInChunk] = 1
                 console.log("interactable tile")
             }      
@@ -188,34 +179,33 @@ Player = function(id, username, socket, progress){
             if(singleGuns.includes(self.hotbar[self.activeSlot])){
                 self.shootBullet(self.mouseAngle, 50)
             }
-
-            self.lastRightClick = self.currentRightClick
         }
 
-        if(self.holdingMouseLeft){
-            if(miningTools.includes(self.hotbar[self.activeSlot]) && getTile(mouseXInChunk, mouseYInChunk) !== 1){
+        if(self.leftHold){
+            if(miningTools.includes(self.hotbar[self.activeSlot]) && getTile(self.mouseTileX, self.mouseTileY) !== 1){
                 self.tileDestroyState += 1 * miningToolStrengths[self.hotbar[self.activeSlot]]
                 if(self.tileDestroyState >= 50){
-                    if(inverse(placeIds)[getTile(mouseXInChunk, mouseYInChunk)] !== undefined)
-                        self.inventory.addItem(inverse(placeIds)[getTile(mouseXInChunk, mouseYInChunk)], 1)
+                    if(inverse(placeIds)[getTile(self.mouseTileX, self.mouseTileY)] !== undefined)
+                        self.inventory.addItem(inverse(placeIds)[getTile(self.mouseTileX, self.mouseTileY)], 1)
 
-                    currentMouseChunk.tiles[mouseYInChunk * currentMouseChunk.width + mouseXInChunk] = 1
+                    currentMouseChunk.tiles[self.mouseTileY * currentMouseChunk.width + self.mouseTileX] = 1
                     tileToPlace = 1
 
                     socket.broadcast.emit('tile-change',{
                         tileToPlace: tileToPlace,
                         mouseChunk: currentMouseChunk,
-                        chunkX: mouseChunkX,
-                        chunkY: mouseChunkY,
-                        tileX: mouseXInChunk,
-                        tileY: mouseYInChunk,
+                        chunkX: self.mouseChunkX,
+                        chunkY: self.mouseChunkY,
+                        tileX: self.mouseTileX,
+                        tileY: self.mouseTileY,
                     })
                     self.tileDestroyState = 0
                 }
             } 
         }
 
-        if(self.currentLeftClick > self.lastLeftClick){
+        if(self.leftEdge){
+            self.leftEdge = false;
             let recipesToSend = []
             for(var i = 0; i < craftingRecipes.length; i++){
                 let hasNeededItems = 0
@@ -233,10 +223,9 @@ Player = function(id, username, socket, progress){
             self.inventory.addRecipes(recipesToSend)
 
             self.tileDestroyState = 0
-            self.lastLeftClick = self.currentLeftClick
         }
 
-        if(self.holdingMouseRight){
+        if(self.rightHold){
             if(autoGuns.includes(self.hotbar[self.activeSlot])){
                 self.shootBullet(self.mouseAngle, 8)
             }
@@ -245,23 +234,23 @@ Player = function(id, username, socket, progress){
                 self.meleeAttack(self.mouseAngle)
             }
 
-            if(placeableItems.includes(self.hotbar[self.activeSlot]) && !priorityTiles.includes(getTile(mouseXInChunk, mouseYInChunk))){
-                if(currentMouseChunk.tiles[mouseYInChunk * currentMouseChunk.width + mouseXInChunk] !== placeIds[self.hotbar[self.activeSlot]]){
+            if(placeableItems.includes(self.hotbar[self.activeSlot]) && !priorityTiles.includes(getTile(self.mouseTileX, self.mouseTileY))){
+                if(currentMouseChunk.tiles[self.mouseTileY * currentMouseChunk.width + self.mouseTileX] !== placeIds[self.hotbar[self.activeSlot]]){
                     self.inventory.removeItem(self.hotbar[self.activeSlot], 1)
-                    if(inverse(placeIds)[getTile(mouseXInChunk, mouseYInChunk)] !== undefined)
-                        self.inventory.addItem(inverse(placeIds)[getTile(mouseXInChunk, mouseYInChunk)], 1)
+                    if(inverse(placeIds)[getTile(self.mouseTileX, self.mouseTileY)] !== undefined)
+                        self.inventory.addItem(inverse(placeIds)[getTile(self.mouseTileX, self.mouseTileY)], 1)
                 }
 
-                currentMouseChunk.tiles[mouseYInChunk * currentMouseChunk.width + mouseXInChunk] = placeIds[self.hotbar[self.activeSlot]]
+                currentMouseChunk.tiles[self.mouseTileY * currentMouseChunk.width + self.mouseTileX] = placeIds[self.hotbar[self.activeSlot]]
                 tileToPlace = placeIds[self.hotbar[self.activeSlot]]
 
                 socket.broadcast.emit('tile-change',{
                     tileToPlace: tileToPlace,
                     mouseChunk: currentMouseChunk,
-                    chunkX: mouseChunkX,
-                    chunkY: mouseChunkY,
-                    tileX: mouseXInChunk,
-                    tileY: mouseYInChunk,
+                    chunkX: self.mouseChunkX,
+                    chunkY: self.mouseChunkY,
+                    tileX: self.mouseTileX,
+                    tileY: self.mouseTileX,
                 })
             }
         }
@@ -434,20 +423,22 @@ Player.onConnect = function(socket, username, progress){
 			player.pressingUp = data.state
 		else if(data.inputId === 'down')
 			player.pressingDown = data.state
-        else if(data.inputId === 'hold_left')
-            player.holdingMouseLeft = data.state
-        else if(data.inputId === 'hold_right')
-            player.holdingMouseRight = data.state
         else if (data.inputId === "mouseAngle")
             player.mouseAngle = data.state
         else if (data.inputId === "clientX")
             player.mouseX = data.state
         else if (data.inputId === "clientY")
             player.mouseY = data.state
-        else if (data.inputId === "left_click")
-            player.currentLeftClick += 1
-        else if (data.inputId === "right_click")
-            player.currentRightClick += 1
+        else if (data.inputId === "left_down") {
+            player.leftHold = true
+            player.leftEdge = true
+        } else if (data.inputId === "right_down") {
+            player.rightHold = true
+            player.rightEdge = true
+        } else if(data.inputId === 'left_up')
+            player.leftHold = false
+        else if(data.inputId === 'right_up')
+            player.rightHold = false
         else if (data.inputId === "one")
             player.activeSlot = 0
         else if (data.inputId === "two")
@@ -458,6 +449,13 @@ Player.onConnect = function(socket, username, progress){
             player.activeSlot = 3
         else if (data.inputId === "five")
             player.activeSlot = 4
+
+        if (["left_up", "left_down", "right_up", "right_down", "mouse_update"].includes(data.inputId)) {
+            player.mouseChunkX = data.cx;
+            player.mouseChunkY = data.cy;
+            player.mouseTileX = data.x;
+            player.mouseTileY = data.y;
+        }
     })  
 
     socket.on("sendMsgToServer", function(data){

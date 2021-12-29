@@ -40,6 +40,11 @@
 
     var mouseX = 0;
     var mouseY = 0;
+    var mouseAngle = 0;
+    var mouseTileX = 0;
+    var mouseTileY = 0;
+    var mouseChunkX = 0;
+    var mouseChunkY = 0;
 
     World = function () {
     var self = {
@@ -172,8 +177,8 @@
             var width = 100
             var height = 100
 
-            var x = self.x - Player.list[selfId].x + ctx.clientWidth/2
-            var y = self.y - Player.list[selfId].y + ctx.clientHeight/2
+            var x = self.x - Player.list[selfId].x + ctx.canvas.clientWidth/2
+            var y = self.y - Player.list[selfId].y + ctx.canvas.clientHeight/2
 
             if(!self.lookingRight){
                 ctx.drawImage(Img.player_left, 0, 0, Img.player_left.width, Img.player_left.height, x-width/2, y-height/2, width, height)
@@ -404,23 +409,8 @@
         //ctx.drawImage(Img.overlay, 0, 0, 1800, 810)
         drawScore()
 
-        //let mouseChunkX = Math.floor((mouseX / 50) / 32);
-        //let mouseChunkY = Math.floor((mouseY / 50) / 32);
-        //let mousexInChunk = Math.floor(mouseX / 50 - mouseChunkX * 32);
-        //let mouseyInChunk = Math.floor(mouseY / 50 - mouseChunkY * 32);
-        //
-        //let selectedTileX = (mousexInChunk * 50) + (mouseChunkX * 32 * 50) - Player.list[selfId].x + WIDTH/2
-        //let selectedTileY = (mouseyInChunk * 50) + (mouseChunkY * 32 * 50) - Player.list[selfId].y + HEIGHT/2 - 40
-
-
         let selectedTileX = Math.floor((mouseX + Player.list[selfId].x) / 50) * 50 - Player.list[selfId].x;
-        let selectedTileY = Math.floor((mouseY + Player.list[selfId].y) / 50) * 50 - Player.list[selfId].y;
-
-        //console.log(mouseChunkX + ", " + mousexInChunk)
-        console.log(selectedTileX + ", " + selectedTileY)
-
-        ctx.fillStyle = "rgba(255, 0, 0, 255)";
-        ctx.fillRect(mouseX, mouseY, 10, 10);
+        let selectedTileY = Math.floor((mouseY + Player.list[selfId].y) / 50) * 50 - Player.list[selfId].y - 10;
 
         // Draw Hover Tile
         ctx.fillStyle = "rgba(145, 47, 47, " + (Player.list[selfId].tileDestroyState/100) + ")"
@@ -590,15 +580,17 @@
     }
 
     document.onmousedown = function(event){
+        console.log("mouseDown")
         switch (event.which) {
             case 1:
-                socket.emit('keyPress',{inputId:'hold_left', state:true})
+                console.log(mouseTileX + ", "  + mouseTileY + "    " + mouseChunkX + "," +  mouseChunkY);
+                socket.emit('keyPress', {inputId:'left_down', x: mouseTileX, y: mouseTileY, cx: mouseChunkX, cy: mouseChunkY})
                 break;
             case 2:
                 //console.log("mid")
                 break;
             case 3:
-                socket.emit('keyPress',{inputId:'hold_right', state:true})
+                socket.emit('keyPress', {inputId:'right_down', x: mouseTileX, y: mouseTileY, cx: mouseChunkX, cy: mouseChunkY})
                 break;
             default:
                 console.log("else")
@@ -606,11 +598,12 @@
     }
 
     document.onmouseup = function(event){
-        socket.emit('keyPress',{inputId:'hold_left', state:false})
-        socket.emit('keyPress',{inputId:'hold_right', state:false})
+        //socket.emit('keyPress',{inputId:'hold_left', state:false})
+        //socket.emit('keyPress',{inputId:'hold_right', state:false})
+        console.log("mouseUp")
         switch (event.which) {
             case 1:
-                socket.emit('keyPress',{inputId:'left_click', state:true, mouseX: mouseX, mouseY: mouseY})
+                socket.emit('keyPress',{inputId:'left_up', x: mouseTileX, y: mouseTileY, cx: mouseChunkX, cy: mouseChunkY})
                 /*
                 setTimeout(function(){
                     socket.emit('keyPress',{inputId:'left_click', state:false})
@@ -621,7 +614,7 @@
                 //console.log("mid")
                 break;
             case 3:
-                socket.emit('keyPress',{inputId:'right_click', state:true, mouseX: mouseX, mouseY: mouseY})
+                socket.emit('keyPress',{inputId:'right_up', x: mouseTileX, y: mouseTileY, cx: mouseChunkX, cy: mouseChunkY})
                 /*
                 setTimeout(function(){
                     socket.emit('keyPress',{inputId:'right_click', state:false})
@@ -639,16 +632,22 @@
         mouseX = event.clientX - rect.left;
         mouseY = event.clientY - rect.top;
 
+        mouseChunkX = Math.floor((mouseX + Player.list[selfId].x) / 50 / 32);
+        mouseChunkY = Math.floor((mouseY + Player.list[selfId].y) / 50 / 32);
+        
+        mouseTileX = Math.floor((mouseX + Player.list[selfId].x) / 50) - 32 * mouseChunkX;
+        mouseTileY = Math.floor((mouseY + Player.list[selfId].y) / 50) - 32 * mouseChunkY;
+
         
         var x = -(WIDTH/2) + event.clientX - rect.left;
         var y = -(HEIGHT/2) + event.clientY - rect.top;
 
-        var angle = Math.atan2(y, x) / Math.PI * 180
-        console.log(event.clientX, rect.left)
+        mouseAngle = Math.atan2(y, x) / Math.PI * 180
+        //console.log(event.clientX, rect.left)
         
-        socket.emit('keyPress',{inputId: 'mouseAngle', state: angle})
-        socket.emit('keyPress',{inputId: 'clientX', state: mouseX})
-        socket.emit('keyPress',{inputId: 'clientY', state: mouseY})
+        //socket.emit('keyPress',{inputId: 'mouseAngle', state: angle})
+        //socket.emit('keyPress',{inputId: 'clientX', state: mouseX})
+        //socket.emit('keyPress',{inputId: 'clientY', state: mouseY})
     }
 
     document.oncontextmenu = function(event){
